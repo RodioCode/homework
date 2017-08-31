@@ -1,48 +1,44 @@
-var socket = null;
+#https://pypi.python.org/pypi/websocket-client
 
-function bootstrap() {
+import websocket
+import _thread 
 
-  // 適当な図形を描画
-  var c = document.getElementById('mycanvas');
-  var ctx = c.getContext('2d');
-  ctx.globalalpha = 0.3;
-  for(var i=0; i<1000; i++) {
-    ctx.beginPath();
-    var r = Math.floor(Math.random() * 256);
-    var g = Math.floor(Math.random() * 256);
-    var b = Math.floor(Math.random() * 256);
-    ctx.strokeStyle = 'rgb(' + r + ',' + g + ',' + b + ')';
-    ctx.moveTo(Math.random()*200, Math.random()*200);
-    ctx.lineTo(Math.random()*200, Math.random()*200);
-    ctx.stroke();
-  }
 
-  // Socketの初期化
-  socket = new WebSocket('ws://localhost:8082');
-  socket.binaryType = 'arraybuffer';
-  socket.onopen = function() {
-    send(ctx);
-  }
-  socket.onmessage = handleReceive;
-};
+#try:    
+ #   import thread 
+#except ImportError:
+#    import _thread as thread #Py3K changed it.
+    
+import time
 
-function send(ctx) {
-  // RAWデータをそのまま送信
-  var data = ctx.getImageData(0, 0, 200, 200).data;
-  var byteArray = new Uint8Array(data);
-  socket.send(byteArray.buffer);
-} 
+def on_message(ws, message):
+    print(message)
 
-function handleReceive(message) {
-  // 受信したRAWデータをcanvasに
-  var c = resultCanvas = document.getElementById('result');
-  var ctx = c.getContext('2d');
-  var imageData = ctx.createImageData(200, 200);
-  var pixels = imageData.data;
+def on_error(ws, error):
+    print(error)
 
-  var buffer = new Uint8Array(message.data);
-  for (var i=0; i < pixels.length; i++) {
-    pixels[i] = buffer[i];
-  }
-  ctx.putImageData(imageData, 0, 0);
-}
+def on_close(ws):
+    print("### closed ###")
+
+def on_open(ws):
+    def run(*args):
+        for i in range(3):
+            time.sleep(1)
+            ws.send("Hello %d" % i)
+            
+        ws.send("registerXXX")
+        
+        time.sleep(1)
+        ws.close()
+        print("thread terminating...")
+    thread.start_new_thread(run, ())
+
+
+if __name__ == "__main__":
+    websocket.enableTrace(True)
+    ws = websocket.WebSocketApp("ws://localhost:8080/",
+                              on_message = on_message,
+                              on_error = on_error,
+                              on_close = on_close)
+    ws.on_open = on_open
+    ws.run_forever()
